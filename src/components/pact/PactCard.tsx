@@ -6,14 +6,20 @@ import { formatCurrency, formatDateRange } from '@/utils/format';
 
 interface PactCardProps {
   pact: Pact;
+  hrefOverride?: string;
+  progress?: { targetDays: number; activityDays: number } | null;
 }
 
-export function PactCard({ pact }: PactCardProps) {
+export function PactCard({ pact, hrefOverride, progress }: PactCardProps) {
   const participantCount = pact.participants?.length || 0;
   const description = pact.description || 'No description available';
+  const percent =
+    progress && progress.targetDays > 0
+      ? Math.min(100, Math.round((progress.activityDays / progress.targetDays) * 100))
+      : null;
 
   return (
-    <Link href={`/pact/${pact._id}`} className="block h-full">
+    <Link href={hrefOverride || `/pact/${pact._id}`} className="block h-full">
       <div className="bg-zinc-900/80 backdrop-blur-xl rounded-2xl border border-zinc-800/50 shadow-xl hover:shadow-2xl hover:border-zinc-700/50 transition-all duration-200 overflow-hidden h-full flex flex-col cursor-pointer group">
         {/* Image Placeholder */}
         <div className="w-full h-48 bg-gradient-to-br from-blue-600/20 to-purple-600/20 flex items-center justify-center">
@@ -110,6 +116,22 @@ export function PactCard({ pact }: PactCardProps) {
                 <span className="text-orange-300 font-bold">{formatCurrency(pact.leaveFine)}</span>
               </div>
             </div>
+
+            {/* Weekly completion bar (if provided) */}
+            {percent !== null && (
+              <div className="mt-4">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-xs text-zinc-400 font-medium">Weekly Completion</span>
+                  <span className="text-xs text-zinc-300 font-semibold">{progress!.activityDays}/{progress!.targetDays} ({percent}%)</span>
+                </div>
+                <div className="w-full h-2 rounded-full bg-zinc-800 overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-blue-600 to-blue-400"
+                    style={{ width: `${percent}%` }}
+                  />
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

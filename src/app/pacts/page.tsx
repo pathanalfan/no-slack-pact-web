@@ -5,6 +5,47 @@ import { useGetActivePactsQuery } from '@/store/api/pactApi';
 import { PactCard } from '@/components/pact/PactCard';
 import { PactCardSkeleton } from '@/components/common/LoadingSkeleton';
 import { Button } from '@/components/common/Button';
+import type { Pact } from '@/types';
+import { STORAGE_KEYS } from '@/constants';
+import { useGetProgressByUserQuery } from '@/store/api/activityApi';
+
+function YourPactsGrid({
+  allPacts,
+  progressMap,
+}: {
+  allPacts: Pact[];
+  progressMap: Record<string, { targetDays: number; activityDays: number }>;
+}) {
+  let userId = '';
+  if (typeof window !== 'undefined') {
+    userId = localStorage.getItem(STORAGE_KEYS.USER_ID) || '';
+  }
+  const yourPacts = allPacts.filter((p) =>
+    Array.isArray(p.participants) && p.participants.some((u) => u._id === userId)
+  );
+
+  if (yourPacts.length === 0) {
+    return (
+      <div className="text-zinc-500 text-sm border border-zinc-800/50 rounded-xl p-6 bg-zinc-900/50">
+        You have not joined any pacts yet.
+      </div>
+    );
+  }
+
+  return (
+    <div className="w-full flex flex-wrap justify-between gap-8">
+      {yourPacts.map((pact) => (
+        <div key={pact._id} className="w-full md:w-[calc(50%-1rem)] lg:w-[calc(33.333%-1.33rem)]">
+          <PactCard
+            pact={pact}
+            hrefOverride={`/pact/${pact._id}/week`}
+            progress={progressMap[pact._id] || null}
+          />
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export default function PactsPage() {
   const router = useRouter();
@@ -14,13 +55,35 @@ export default function PactsPage() {
     router.push('/pacts/create');
   };
 
+  let userId = '';
+  if (typeof window !== 'undefined') {
+    userId = localStorage.getItem(STORAGE_KEYS.USER_ID) || '';
+  }
+
+  const { data: progressResp, isFetching: isFetchingProgress } = useGetProgressByUserQuery(
+    userId || '',
+    {
+      skip: !userId,
+    }
+  );
+  const progressMap: Record<string, { targetDays: number; activityDays: number }> = {};
+  if (progressResp?.results) {
+    for (const r of progressResp.results) {
+      progressMap[r.pactId] = { targetDays: r.targetDays, activityDays: r.activityDays };
+    }
+  }
+
+  const explorePacts = (pacts || []).filter(
+    (p) => !(Array.isArray(p.participants) && p.participants.some((u) => u._id === userId))
+  );
+
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-zinc-900 via-zinc-950 to-black">
       {/* Header Section */}
       
   <div className="container mx-auto max-w-7xl pt-16 sm:pt-20 lg:pt-24 pb-6 sm:pb-8 px-4 sm:px-6 lg:px-8">
     <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-zinc-100">
-          Explore Active Pacts
+          Explore Pacts
         </h1>
       </div>
 
@@ -115,16 +178,38 @@ export default function PactsPage() {
             </div>
           )}
 
-          {/* Pacts Grid */}
-          {!isLoading && !isError && pacts && pacts.length > 0 && (
-            <div className="w-full flex flex-wrap justify-between gap-8">
-              {pacts.map((pact) => (
-                <div key={pact._id} className="w-full md:w-[calc(50%-1rem)] lg:w-[calc(33.333%-1.33rem)]">
-                  <PactCard pact={pact} />
-                </div>
-              ))}
+            {/* Your Pacts Section */}
+            {!isLoading && !isError && pacts && pacts.length > 0 && (
+            <div className="mt-16">
+              <div className="mb-6 flex items-center gap-2">
+                <h2 className="text-2xl sm:text-3xl font-bold text-zinc-100">Your Pacts</h2>
+                {isFetchingProgress && (
+                  <div className="w-4 h-4 border-2 border-blue-500/30 border-t-blue-500 rounded-full animate-spin" />
+                )}
+              </div>
+              <YourPactsGrid allPacts={pacts} progressMap={progressMap} />
             </div>
           )}
+          {/* Pacts Grid - Explore Active Pacts */}
+          {!isLoading && !isError && explorePacts && explorePacts.length > 0 && (
+            <>
+              <div className="flex items-center gap-2 mb-6">
+                <h2 className="text-2xl sm:text-3xl font-bold text-zinc-100">Active Pacts</h2>
+                {isFetchingProgress && (
+                  <div className="w-4 h-4 border-2 border-blue-500/30 border-t-blue-500 rounded-full animate-spin" />
+                )}
+              </div>
+              <div className="w-full flex flex-wrap justify-between gap-8">
+                {explorePacts.map((pact) => (
+                  <div key={pact._id} className="w-full md:w-[calc(50%-1rem)] lg:w-[calc(33.333%-1.33rem)]">
+                    <PactCard pact={pact} progress={progressMap[pact._id] || null} />
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+
+        
         </div>
       )}
 

@@ -61,3 +61,66 @@ export interface CreateActivityDto {
   isPrimary: boolean;
 }
 
+export interface ActivityLog {
+  _id: string;
+  pactId: string;
+  userId: string;
+  activityId: string;
+  date: string; // ISO date string
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateActivityLogDto {
+  pactId: string;
+  userId: string;
+  activityId: string;
+  date: string; // ISO date string (YYYY-MM-DD)
+  notes?: string;
+}
+
+export interface UserProgressResult {
+  pactId: string;
+  targetDays: number;
+  activityDays: number;
+}
+
+export interface UserProgressResponse {
+  userId: string;
+  results: UserProgressResult[];
+}
+
+export interface UserLogsByPactDay {
+  date: string; // YYYY-MM-DD
+  logs: Array<{
+    id: string;
+    activityId: string;
+    occurredAt: string;
+    notes?: string;
+    verified: boolean;
+  }>;
+}
+
+export interface UserLogsByPactResponse {
+  pactId: string;
+  userId: string;
+  days: UserLogsByPactDay[];
+}
+
+export interface ActivityLogImage {
+  name: string;
+  mimeType: string;
+  sizeBytes: number;
+  webViewLink: string;
+  webContentLink: string;
+}
+
+export interface ActivityLogDetail {
+  id: string;
+  date: string; // YYYY-MM-DD
+  occurredAt: string;
+  notes?: string;
+  images: ActivityLogImage[];
+}
+

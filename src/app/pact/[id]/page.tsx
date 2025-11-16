@@ -74,6 +74,12 @@ export default function PactDetailPage() {
         throw new Error('Failed to join pact');
       }
 
+      // Persist current pact for default routing
+      try {
+        localStorage.setItem(STORAGE_KEYS.CURRENT_PACT_ID, pact._id);
+      } catch {}
+
+      // Go to the pacts page after joining
       router.push('/pacts');
     } catch (error) {
       console.error('Error joining pact:', error);
@@ -285,6 +291,19 @@ export default function PactDetailPage() {
 
         {/* Action Button - Always Visible */}
         <div className="sticky bottom-6 z-10">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-zinc-500 text-sm">
+              {showConfirmJoin
+                ? 'You have added the maximum number of activities.'
+                : `You can add ${pact.maxActivitiesPerUser - userActivityCount} more ${pact.maxActivitiesPerUser - userActivityCount === 1 ? 'activity' : 'activities'}.`}
+            </span>
+            <button
+              onClick={() => router.push('/pacts')}
+              className="text-sm text-zinc-400 hover:text-zinc-200 underline underline-offset-4 transition-colors"
+            >
+              View other pacts
+            </button>
+          </div>
           <Button
             variant="primary"
             size="lg"
