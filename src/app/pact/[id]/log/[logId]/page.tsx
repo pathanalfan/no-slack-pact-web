@@ -73,14 +73,17 @@ export default function ActivityLogDetailPage() {
             {log.images && log.images.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {log.images.map((img, idx) => (
-                  <div key={idx} className="rounded-xl border border-zinc-800/60 p-3 bg-zinc-900/50">
+                  <div key={idx} className="rounded-xl border border-zinc-800/60 p-0 bg-zinc-900/50 overflow-hidden">
                     {img.mimeType.startsWith('image/') ? (
-                      <a href={img.webViewLink} target="_blank" rel="noreferrer">
+                      <a href={img.webViewLink} target="_blank" rel="noreferrer" className="block relative group">
                         <img
                           src={img.webContentLink}
                           alt={img.name}
-                          className="w-full h-40 object-cover rounded-lg border border-zinc-800/60"
+                          className="w-full h-40 object-cover"
                         />
+                        <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-xs text-zinc-200">
+                          Click to view
+                        </div>
                       </a>
                     ) : (
                       <a
@@ -89,10 +92,10 @@ export default function ActivityLogDetailPage() {
                         rel="noreferrer"
                         className="text-blue-400 hover:text-blue-300 underline"
                       >
-                        {img.name}
+                        {img.name} (Click to view)
                       </a>
                     )}
-                    <div className="text-xs text-zinc-500 mt-2">{img.mimeType}</div>
+                    <div className="text-xs text-zinc-500 p-3 border-t border-zinc-800/60">{img.mimeType}</div>
                   </div>
                 ))}
               </div>

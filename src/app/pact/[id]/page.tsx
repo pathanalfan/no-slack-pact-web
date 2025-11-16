@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useGetPactByIdQuery } from '@/store/api/pactApi';
 import { useGetUserActivitiesByPactQuery } from '@/store/api/activityApi';
@@ -44,10 +44,13 @@ export default function PactDetailPage() {
     router.push(`/pact/${pactId}/activity/create`);
   };
 
+  const [isJoining, setIsJoining] = useState(false);
+
   const handleConfirmJoin = async () => {
     if (!pact) return;
 
     try {
+      setIsJoining(true);
       const userId = localStorage.getItem(STORAGE_KEYS.USER_ID);
       if (!userId) {
         router.push('/login');
@@ -84,6 +87,8 @@ export default function PactDetailPage() {
     } catch (error) {
       console.error('Error joining pact:', error);
       alert('Failed to join pact. Please try again.');
+    } finally {
+      setIsJoining(false);
     }
   };
 
@@ -228,7 +233,7 @@ export default function PactDetailPage() {
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     strokeWidth={2}
-                    d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+                    d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2z"
                   />
                 </svg>
                 <span className="text-zinc-400 text-sm font-medium">Max Activities</span>
@@ -265,21 +270,11 @@ export default function PactDetailPage() {
                     className="bg-zinc-800/50 rounded-xl p-4 border border-zinc-700/50"
                   >
                     <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <h4 className="text-zinc-100 font-semibold">{activity.name}</h4>
-                          {activity.isPrimary && (
-                            <span className="text-xs text-blue-400 font-medium bg-blue-500/10 px-2 py-1 rounded">
-                              Primary
-                            </span>
-                          )}
-                        </div>
+                      <div>
+                        <h4 className="text-zinc-100 font-semibold mb-1">{activity.name}</h4>
                         {activity.description && (
-                          <p className="text-zinc-400 text-sm mb-2">{activity.description}</p>
+                          <p className="text-zinc-400 text-sm">{activity.description}</p>
                         )}
-                        <p className="text-zinc-500 text-sm">
-                          {activity.numberOfDays} Day{activity.numberOfDays !== 1 ? 's' : ''} Per Week
-                        </p>
                       </div>
                     </div>
                   </div>
@@ -309,7 +304,8 @@ export default function PactDetailPage() {
             size="lg"
             onClick={showConfirmJoin ? handleConfirmJoin : handleAddActivity}
             className="w-full"
-            disabled={isLoadingActivities}
+            disabled={isLoadingActivities || isJoining}
+            isLoading={isJoining}
           >
             {isLoadingActivities ? (
               'Loading...'

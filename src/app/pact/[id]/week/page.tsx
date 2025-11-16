@@ -46,7 +46,12 @@ export default function PactWeekViewPage() {
     isFetching: isFetchingLogs,
   } = useGetUserLogsByPactQuery(
     { pactId: pactId || '', userId: userId || '' },
-    { skip: !pactId || !userId }
+    {
+      skip: !pactId || !userId,
+      refetchOnMountOrArgChange: true,
+      refetchOnFocus: true,
+      refetchOnReconnect: true,
+    }
   );
 
   const today = useMemo(() => {
@@ -56,18 +61,23 @@ export default function PactWeekViewPage() {
   }, []);
 
   const allDays = useMemo(() => {
-    // Calendar starts from pact start week (or this week if missing)
-    const baseStart = pact?.startDate ? new Date(pact.startDate) : today;
-    baseStart.setHours(0, 0, 0, 0);
-    const start = getStartOfWeek(baseStart);
+    // Start from the earlier of (pact start week) and (today's week)
+    const pactStartBase = pact?.startDate ? new Date(pact.startDate) : today;
+    pactStartBase.setHours(0, 0, 0, 0);
+    const startOfPactWeek = getStartOfWeek(pactStartBase);
+    const startOfTodayWeek = getStartOfWeek(today);
+    const rangeStart =
+      startOfPactWeek.getTime() <= startOfTodayWeek.getTime()
+        ? startOfPactWeek
+        : startOfTodayWeek;
 
-    // Calendar extends to include the current week so we can center "today"
+    // Always include current week so we can center today
     const endOfThisWeek = addDays(getStartOfWeek(today), 6);
 
-    const diffMs = endOfThisWeek.getTime() - start.getTime();
+    const diffMs = endOfThisWeek.getTime() - rangeStart.getTime();
     const daysCount = Math.max(7, Math.floor(diffMs / (24 * 60 * 60 * 1000)) + 1);
 
-    return Array.from({ length: daysCount }, (_, i) => addDays(start, i));
+    return Array.from({ length: daysCount }, (_, i) => addDays(rangeStart, i));
   }, [today, pact?.startDate]);
 
   const currentDayIndex = allDays.findIndex((d) => d.getTime() === today.getTime());
@@ -76,23 +86,24 @@ export default function PactWeekViewPage() {
   const listRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    // Center the current day in view
-    const el = dayRefs.current[currentDayIndex];
     const list = listRef.current;
-    if (el && list) {
-      const elRect = el.getBoundingClientRect();
-      const listRect = list.getBoundingClientRect();
-      // Horizontal (desktop)
-      if (window.innerWidth >= 1024) {
-        const offset = el.offsetLeft - list.clientWidth / 2 + el.clientWidth / 2;
-        list.scrollTo({ left: offset, behavior: 'smooth' });
-      } else {
-        // Vertical (mobile)
-        const offset = el.offsetTop - list.clientHeight / 2 + el.clientHeight / 2;
-        list.scrollTo({ top: offset, behavior: 'smooth' });
-      }
+    if (!list) return;
+
+    // Prefer today if present, else center first day
+    const indexToCenter = currentDayIndex >= 0 ? currentDayIndex : 0;
+    const el = dayRefs.current[indexToCenter];
+    if (!el) return;
+
+    // Horizontal (desktop)
+    if (window.innerWidth >= 1024) {
+      const offset = el.offsetLeft - list.clientWidth / 2 + el.clientWidth / 2;
+      list.scrollTo({ left: offset, behavior: 'smooth' });
+    } else {
+      // Vertical (mobile)
+      const offset = el.offsetTop - list.clientHeight / 2 + el.clientHeight / 2;
+      list.scrollTo({ top: offset, behavior: 'smooth' });
     }
-  }, [currentDayIndex]);
+  }, [currentDayIndex, allDays.length]);
 
   if (isLoading || !pact || (isLoadingLogs && !userLogs)) {
     return (
@@ -170,7 +181,11 @@ export default function PactWeekViewPage() {
                 </div>
 
                 {/* Day content */}
-                {dayLogs.length > 0 ? (
+                {isToday && isFetchingLogs ? (
+                  <div className="mb-4 flex items-center justify-center">
+                    <div className="w-5 h-5 border-2 border-blue-500/30 border-t-blue-500 rounded-full animate-spin" />
+                  </div>
+                ) : dayLogs.length > 0 ? (
                   <div className="space-y-2 mb-4">
                     {dayLogs.map((log) => (
                       <button

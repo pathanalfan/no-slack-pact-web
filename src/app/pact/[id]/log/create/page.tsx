@@ -5,7 +5,7 @@ import { useState, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useGetUserActivitiesByPactQuery, useCreateActivityLogMutation } from '@/store/api/activityApi';
+import { useGetUserActivitiesByPactQuery } from '@/store/api/activityApi';
 import { Button } from '@/components/common/Button';
 import { Input } from '@/components/common/Input';
 import { Textarea } from '@/components/common/Textarea';
@@ -27,7 +27,7 @@ export default function CreateActivityLogPage() {
   const { data: activities = [], isLoading } = useGetUserActivitiesByPactQuery(pactId || '', {
     skip: !pactId,
   });
-  const [createLog, { isLoading: isSaving }] = useCreateActivityLogMutation();
+  const [isUploading, setIsUploading] = useState(false);
   const [files, setFiles] = useState<File[]>([]);
   const [fileError, setFileError] = useState<string | null>(null);
 
@@ -84,6 +84,7 @@ export default function CreateActivityLogPage() {
     }
 
     try {
+      setIsUploading(true);
       // First create the activity log metadata (if backend requires multipart only, skip this and send everything to /activity-logs)
       // For the given requirement, the endpoint for uploads is POST /activity-logs (multipart/form-data)
       const form = new FormData();
@@ -114,6 +115,8 @@ export default function CreateActivityLogPage() {
     } catch (e) {
       // Silently fail for now; add proper toast later
       alert('Failed to save activity log.');
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -188,7 +191,10 @@ export default function CreateActivityLogPage() {
                 </label>
                 <input
                   type="file"
-                  accept="image/jpeg,image/png,image/webp,video/mp4,video/quicktime"
+                  // Broader accept to allow native camera UI selection on phones
+                  accept="image/*,video/*"
+                  // Hint to open camera; support varies by device/browser
+                  capture
                   multiple
                   onChange={(e) => {
                     const list = Array.from(e.target.files || []);
@@ -212,7 +218,7 @@ export default function CreateActivityLogPage() {
                   </p>
                 )}
                 <p className="mt-2 text-xs text-zinc-500">
-                  Allowed: jpeg, png, webp (≤10MB each), mp4, mov (≤100MB each)
+                  Allowed: jpeg, png, webp (≤10MB each), mp4, mov (≤100MB each). On phones, this picker supports taking a photo or recording a video.
                 </p>
               </div>
             </div>
@@ -221,7 +227,7 @@ export default function CreateActivityLogPage() {
               <Button variant="outline" type="button" onClick={() => router.push(`/pact/${pactId}/week`)}>
                 Cancel
               </Button>
-              <Button type="submit" variant="primary" isLoading={isSaving} disabled={!isValid || isSaving}>
+              <Button type="submit" variant="primary" isLoading={isUploading} disabled={!isValid || isUploading}>
                 Save Log
               </Button>
             </div>
